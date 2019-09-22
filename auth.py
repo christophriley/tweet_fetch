@@ -5,10 +5,15 @@
 #     Concatenate the encoded consumer key, a colon character ”:”, and the encoded consumer secret into a single string.
 #     Base64 encode the string from the previous step.
 import base64
+import logging
+import os
 import requests
 import urllib.parse
 
 from credentials import credentials
+
+log_level = os.environ.get('LOG_LEVEL', 'WARNING')
+logging.basicConfig(level=log_level)
 
 
 AUTH_ENDPOINT = 'https://api.twitter.com/oauth2/token'
@@ -16,9 +21,14 @@ AUTH_REQUEST_BODY = 'grant_type=client_credentials'
 AUTH_CONTENT_TYPE = 'application/x-www-form-urlencoded;charset=UTF-8'
 RESPONSE_TOKEN_KEY = 'access_token'
 
+LIMIT_ENDPOINT ='https://api.twitter.com/1.1/application/rate_limit_status.json'
+
 class TwitterAuth:
+    __instance = None
+
     def __init__(self):
-        self.bearer_token = None
+        if TwitterAuth.__instance is not None:
+            raise Exception('Cannot instantiate directly. Use get_bearer_token instead.')
         
         # Encode according to RFC 1738, which does nothing at the time of this writing but
         # may do something in the future
@@ -31,8 +41,6 @@ class TwitterAuth:
         # Base64 encode the concatenated string to use as the basic authoriziation key
         self.encoded_key = base64.b64encode(joined.encode()).decode()
 
-    def _retrieve_bearer_token(self):
-        """Use the encoded key to request a bearer token from the auth endpoint"""
         headers = {
             'Authorization': 'Basic ' + self.encoded_key,
             'Content-Type': AUTH_CONTENT_TYPE
@@ -40,8 +48,29 @@ class TwitterAuth:
 
         r = requests.post(AUTH_ENDPOINT, data=AUTH_REQUEST_BODY, headers=headers)
         self.bearer_token = r.json().get(RESPONSE_TOKEN_KEY)
+        self.refresh_limits()
+        logging.info('Successfully authenticated')
+        TwitterAuth.__instance = self
 
-    def get_bearer_token(self):
-        if self.bearer_token is None:
-            self._retrieve_bearer_token()
-        return self.bearer_token
+    def refresh_limits(self):
+        headers = {
+            'Authorization': 'Bearer ' + self.bearer_token
+        }
+        params = {
+            'resources': 'search,statuses'
+        }
+        r = requests.get(LIMIT_ENDPOINT, headers=headers, params=params)
+        self.limits = r.json()
+
+
+    @staticmethod
+    def get_bearer_token():
+        if TwitterAuth.__instance is None:
+            TwitterAuth()
+        return TwitterAuth.__instance.bearer_token
+
+    @staticmethod
+    def get_limits():
+        if TwitterAuth.__instance is None:
+            TwitterAuth()
+        return TwitterAuth.__instance.limits

@@ -1,12 +1,28 @@
-class TwitterRequest:
-    def __init__(self, endpoint):
-        self.endpoint = endpoint
-        self.additional_params = None
+import logging
+import os
+import requests
 
-    def send(self, args):
-        r = requests.post(AUTH_ENDPOINT, data=AUTH_REQUEST_BODY, headers=headers)
+from auth import TwitterAuth
 
-class SearchRequest(TwitterRequest):
-    def __init__(self):
-        search_url = 'https://api.twitter.com/1.1/search/tweets.json'
-        super().__init__(search_url)
+import logging
+log_level = os.environ.get('LOG_LEVEL', 'WARNING')
+logging.basicConfig(level=log_level)
+
+SEARCH_URL = 'https://api.twitter.com/1.1/search/tweets.json'
+
+
+def _send_request(endpoint, params={}):
+    token = TwitterAuth.get_bearer_token()
+    headers = {
+        'Authorization': 'Bearer ' + token
+    }
+
+    r = requests.get(endpoint, params=params, headers=headers)
+    return r.json()
+
+def get_user_tweets(user_name):
+    params = {
+        'count': 100,
+        'q': f"from:{user_name}"
+    }
+    return _send_request(SEARCH_URL, params=params)
