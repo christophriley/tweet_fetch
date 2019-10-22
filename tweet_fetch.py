@@ -1,6 +1,7 @@
 import json
 
 from auth import TwitterAuth
+from db import save_tweets
 from twitter_requests import get_user_tweets
 
 if __name__ == "__main__":
@@ -25,7 +26,7 @@ if __name__ == "__main__":
 
     if args.user:
         tweets = get_user_tweets(args.user)
-        print(json.dumps(tweets, indent=2))
+        save_tweets(tweets.get('statuses'))
     elif args.mention:
         raise NotImplementedError
     elif args.limits:
