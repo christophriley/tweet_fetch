@@ -3,8 +3,8 @@ from sqlalchemy import Column, Integer, Text, Boolean, create_engine
 from sqlalchemy.orm import sessionmaker
 
 import logging, os
-log_level = os.environ.get('LOG_LEVEL', 'WARNING')
-logging.basicConfig(level=log_level)
+log = logging.getLogger(__name__)
+log.setLevel(os.environ.get('LOG_LEVEL', 'WARNING'))
 
 engine = create_engine('sqlite:///tweet_data.db')
 Session = sessionmaker(bind=engine)
@@ -27,7 +27,7 @@ class Tweet(Base):
 Base.metadata.create_all(engine)
 
 def save_tweets(tweets_json):
-    logging.info("Saving %d tweets to database" % len(tweets_json))
+    log.info("Saving %d tweets to database" % len(tweets_json))
     session = Session()
     for tweet_json in tweets_json:
         new_tweet = Tweet(

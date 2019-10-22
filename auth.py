@@ -9,11 +9,12 @@ import logging
 import os
 import requests
 import urllib.parse
+import time
 
 from credentials import credentials
 
-log_level = os.environ.get('LOG_LEVEL', 'WARNING')
-logging.basicConfig(level=log_level)
+log = logging.getLogger(__name__)
+log.setLevel(os.environ.get('LOG_LEVEL', 'WARNING'))
 
 
 AUTH_ENDPOINT = 'https://api.twitter.com/oauth2/token'
@@ -24,12 +25,8 @@ RESPONSE_TOKEN_KEY = 'access_token'
 LIMIT_ENDPOINT ='https://api.twitter.com/1.1/application/rate_limit_status.json'
 
 class TwitterAuth:
-    __instance = None
-
     def __init__(self):
-        if TwitterAuth.__instance is not None:
-            raise Exception('Cannot instantiate directly. Use get_bearer_token instead.')
-        
+        self.limits = {}
         # Encode according to RFC 1738, which does nothing at the time of this writing but
         # may do something in the future
         key = urllib.parse.quote(credentials.get('consumer_key'))
@@ -48,9 +45,8 @@ class TwitterAuth:
 
         r = requests.post(AUTH_ENDPOINT, data=AUTH_REQUEST_BODY, headers=headers)
         self.bearer_token = r.json().get(RESPONSE_TOKEN_KEY)
-        self.refresh_limits()
         logging.info('Successfully authenticated')
-        TwitterAuth.__instance = self
+        self.refresh_limits()
 
     def refresh_limits(self):
         headers = {
@@ -60,17 +56,23 @@ class TwitterAuth:
             'resources': 'search,statuses'
         }
         r = requests.get(LIMIT_ENDPOINT, headers=headers, params=params)
-        self.limits = r.json()
+        limit_groups = r.json().get('resources')
+        for limit_group in limit_groups.values():
+            for key, limit_object in limit_group.items():
+                limit_value = limit_object.get('remaining')
+                self.limits[key] = limit_value
+                log.info('Current remaining limit for %s is %d' % (key, limit_value))
 
-
-    @staticmethod
-    def get_bearer_token():
-        if TwitterAuth.__instance is None:
-            TwitterAuth()
-        return TwitterAuth.__instance.bearer_token
-
-    @staticmethod
-    def get_limits():
-        if TwitterAuth.__instance is None:
-            TwitterAuth()
-        return TwitterAuth.__instance.limits
+    def decrement_limit(self, key):
+        current_limit = self.limits[key]
+        if current_limit <= 0:
+            log.warning('Rate limit reached for %s. Sleeping for 15 minutes' % key)
+            time.sleep(15 * 60)
+            self.refresh_limits()
+            current_limit = self.limits[key]
+            log.warning('Resuming with new limit of %d' % current_limit)
+        
+        new_limit = current_limit - 1
+        if new_limit % 50 == 0:
+            log.info('Limit for %s is now at %d' % (key, new_limit))
+        self.limits[key] = new_limit
