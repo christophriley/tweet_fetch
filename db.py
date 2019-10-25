@@ -37,7 +37,7 @@ def save_tweets(tweets_json):
             id = tweet_json.get('id'),
             user = tweet_json.get('user').get('screen_name'),
             truncated = tweet_json.get('truncated'),
-            text = tweet_json.get('text'),
+            text = tweet_json.get('text', tweet_json.get('full_text')),
             is_retweet = tweet_json.get('retweeted_status') is not None,
             reply_to = tweet_json.get('in_reply_to_screen_name'),
         )
