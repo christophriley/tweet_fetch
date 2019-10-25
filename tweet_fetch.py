@@ -17,11 +17,6 @@ if __name__ == "__main__":
         '--mention',
         help='Retrieve tweets mentioning the given handle'
     )
-    group.add_argument(
-        '--limits',
-        action='store_true',
-        help='Print information about the current rate limits of the app'
-    )
     args = parser.parse_args()
 
     if args.user:
@@ -29,6 +24,3 @@ if __name__ == "__main__":
         save_tweets(tweets.get('statuses'))
     elif args.mention:
         raise NotImplementedError
-    elif args.limits:
-        limits = TwitterAuth.get_limits()
-        print(json.dumps(limits, indent=2))
