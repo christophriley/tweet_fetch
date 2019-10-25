@@ -21,6 +21,6 @@ if __name__ == "__main__":
 
     if args.user:
         tweets = get_user_tweets(args.user)
-        save_tweets(tweets.get('statuses'))
+        save_tweets(tweets)
     elif args.mention:
         raise NotImplementedError
