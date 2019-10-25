@@ -19,6 +19,8 @@ class Tweet(Base):
     user = Column(String, index=True)
     text = Column(Text)
     truncated = Column(Boolean)
+    is_retweet = Column(Boolean)
+    reply_to = Column(String)
 
     def __repr__(self):
         return ("ID: %d\n"
@@ -35,7 +37,9 @@ def save_tweets(tweets_json):
             id = tweet_json.get('id'),
             user = tweet_json.get('user').get('screen_name'),
             truncated = tweet_json.get('truncated'),
-            text = tweet_json.get('text')
+            text = tweet_json.get('text'),
+            is_retweet = tweet_json.get('retweeted_status') is not None,
+            reply_to = tweet_json.get('in_reply_to_screen_name'),
         )
         session.merge(new_tweet)
     session.commit()
