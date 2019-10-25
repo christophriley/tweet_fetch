@@ -57,7 +57,6 @@ def _get_user_tweets_batch(user_name, max_id=None):
     params = {
         'count': TIMELINE_COUNT,
         'screen_name': user_name,
-        'trim_user': True,
     }
 
     if max_id is not None:

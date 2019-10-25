@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, Text, Boolean, create_engine
+from sqlalchemy import Column, Integer, Text, Boolean, String, create_engine
 from sqlalchemy.orm import sessionmaker
 
 import logging, os
@@ -16,6 +16,7 @@ class Tweet(Base):
     __tablename__ = 'tweets'
 
     id = Column(Integer, primary_key=True)
+    user = Column(String, index=True)
     text = Column(Text)
     truncated = Column(Boolean)
 
@@ -32,6 +33,7 @@ def save_tweets(tweets_json):
     for tweet_json in tweets_json:
         new_tweet = Tweet(
             id = tweet_json.get('id'),
+            user = tweet_json.get('user').get('screen_name'),
             truncated = tweet_json.get('truncated'),
             text = tweet_json.get('text')
         )
