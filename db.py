@@ -8,6 +8,7 @@ import logging, os
 log = logging.getLogger(__name__)
 log.setLevel(os.environ.get('LOG_LEVEL', 'WARNING'))
 
+# TODO: make database file configurable
 engine = create_engine('sqlite:///tweet_data.db')
 Session = sessionmaker(bind=engine)
 
