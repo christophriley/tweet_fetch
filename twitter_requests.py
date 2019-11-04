@@ -82,3 +82,37 @@ def get_user_tweets(user_name):
             break
     return all_tweets
     
+def _get_search_batch(query, max_id=None):
+    """Get the next page of results from a search"""
+    params = {
+        'count': SEARCH_COUNT,
+        'q': query,
+        'tweet_mode': 'extended',
+    }
+
+    if max_id is not None:
+        params['max_id'] = max_id
+    
+    result = _send_request(SEARCH_ENDPOINT_KEY, params=params)
+    tweets = result.get('statuses')
+    
+    lowest_id = _get_lowest_id(tweets)
+    return tweets, lowest_id
+
+def search(query):
+    """Retrieve tweets by doing a search with the given query"""
+    all_tweets, lowest_id = _get_search_batch(query)
+    try:
+        while True:
+            next_batch, lowest_id = _get_search_batch(query, lowest_id)
+            all_tweets += next_batch
+            log.info('Retrieved %d total tweets' % len(all_tweets))
+    
+            # The list of tweets may include the one with the given max_id, so 
+            # we need to use <= instead of strict <
+            if len(next_batch) <= 1:
+                break
+    except KeyboardInterrupt:
+        log.warning('Caught Keyboard Interrupt - stopping search and saving to database')
+
+    return all_tweets

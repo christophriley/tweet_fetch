@@ -2,7 +2,7 @@ import json
 
 from auth import TwitterAuth
 from db import save_tweets
-from twitter_requests import get_user_tweets
+import twitter_requests
 
 if __name__ == "__main__":
     import argparse
@@ -14,13 +14,14 @@ if __name__ == "__main__":
         help='Retrieve tweets made by the given handle'
     )
     group.add_argument(
-        '--mention',
-        help='Retrieve tweets mentioning the given handle'
+        '--search',
+        help='Search for tweets with the given query'
     )
     args = parser.parse_args()
 
     if args.user:
-        tweets = get_user_tweets(args.user)
+        tweets = twitter_requests.get_user_tweets(args.user)
         save_tweets(tweets)
-    elif args.mention:
-        raise NotImplementedError
+    elif args.search:
+        tweets = twitter_requests.search(args.search)
+        save_tweets(tweets)
